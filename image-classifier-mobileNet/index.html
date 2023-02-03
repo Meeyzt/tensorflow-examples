@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Train Model</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest"> </script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-vis@1.0.2/dist/tfjs-vis.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@1.0.0"> </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div class="w-screen h-screen bg-gray-900">
+        <div class="w-full h-full flex justify-center items-center flex-col">
+            <div id="image-container" class="relative flex items-center flex-col hidden">
+                <div id="image-loading" class="ring-2 ring-gray-700 drop-shadow-lg ring-offset-4 ring-offset-indigo-600 border-2 border-black w-[calc(100%-50px)] h-10 bg-gray-100 rounded-t-lg pt-1 flex font-bold justify-center text-lg text-black">
+                    Loading...
+                </div>
+
+                <img id="img" class="w-96 h-96 rounded-lg ring-2 ring-gray-700 drop-shadow-lg ring-offset-4 ring-offset-indigo-600 border-2 border-black z-10" src="cat.jpg" alt="classifier-image" />
+
+                <div id="image-prediction" class="hidden truncate ring-2 ring-gray-700 drop-shadow-lg ring-offset-4 ring-offset-indigo-600 border-2 border-black w-[calc(100%-50px)] h-10 bg-gray-100 rounded-b-lg pt-1 flex font-bold justify-center text-lg text-black">
+                    Prediction
+                </div>
+
+                <button id="close-button" class="hidden absolute z-20 top-0 right-0 bg-indigo-600 font-bold text-gray-900 border-2 border-indigo-600 border-b-black border-l-black rounded-md px-2 py-1 focus:ring-offset-1 focus:border-b-indigo-800 focus:border-l-indigo-800 focus:shadow-sm focus:shadow-black focus:bg-indigo-500 hover:bg-indigo-500">
+                    X
+                </button>
+            </div>
+            
+            <div id="upload-container" class="relative">
+                <div class="w-96 h-96 rounded-lg ring-2 ring-gray-700 drop-shadow-lg ring-offset-4 ring-offset-indigo-600 border-2 border-black bg-gray-700 blur">
+                </div>
+
+                <div class="absolute z-10 top-[calc(50%-19px)] left-[calc(50%-65px)]">
+                    <input type="file" id="image-input" class="hidden" />
+
+                    <button id="upload-button" class="bg-indigo-600 font-bold text-gray-900 border-1 border-indigo-900 ring-2 ring-indigo-600 rounded-md p-3 focus:border-black focus:ring-offset-1 focus:ring-offset-indigo-900 focus:bg-indigo-500 hover:bg-indigo-500">
+                        Upload Image
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <script src="./index.js"> </script>
+</body>
+</html>
