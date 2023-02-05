@@ -1,0 +1,26 @@
+{
+  "name": "fashion-model",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "train": "node train.js",
+    "watch": "mkdir -p dist/models && cp -r models/decoder dist/models/ && cross-env NODE_ENV=development parcel client.html --no-hmr --open",
+    "download-data": "node download.js",
+    "build": "NODE_ENV=production parcel build client.html --public-url ./",
+    "test": "node run_tests.js"
+  },
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.2.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.2.0",
+    "@tensorflow/tfjs-backend-webgl": "^4.2.0",
+    "@tensorflow/tfjs-vis": "^1.5.1",
+    "assert": "^2.0.0",
+    "d3-selection": "^3.0.0",
+    "fs-extra": "^11.1.0",
+    "jasmine": "^4.5.0",
+    "jimp": "^0.17.9",
+    "lodash": "^4.17.21",
+    "node-gyp": "^9.3.1",
+    "util": "^0.12.5"
+  }
+}
