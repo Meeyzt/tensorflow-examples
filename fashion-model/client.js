@@ -19,7 +19,9 @@
  * This file holds the browser based viewer for the VAE trained in node.
  */
 
-import { select as d3Select } from 'https://cdn.skypack.dev/d3-selection@3';
+import * as tf from '@tensorflow/tfjs';
+import * as tfvis from '@tensorflow/tfjs-vis';
+import {select as d3Select} from 'd3-selection';
 
 // Make sure that you are serving the model file at this location.
 // You should be able to paste this url into your browser and see
