@@ -22,8 +22,7 @@ const argparse = require('argparse');
 
 // The tf module will be dynamically set depending on whether the `--gpu`
 // flag is specified.
-let tf = require('@tensorflow/tfjs');
-require('@tensorflow/tfjs-backend-wasm');
+let tf;
 
 import('./data/data.js').then(exports => {
   const {DATASET_PATH, TRAIN_IMAGES_FILE, IMAGE_FLAT_SIZE, loadImages, batchImages,} = exports; const {encoder, decoder, vae, vaeLoss} = require('./model');
@@ -181,11 +180,9 @@ import('./data/data.js').then(exports => {
   batchSize = args.batchSize;
 
   if (args.gpu) {
-    await tf.setBackend('wasm');
-    console.log(tf.getBackend());
+    tf = require('@tensorflow/tfjs-node-gpu');
   } else {
-    await tf.setBackend('cpu');
-    console.log(tf.getBackend());
+    tf = require('@tensorflow/tfjs-node');
   }
 
   await run(args.savePath, args.logDir);
