@@ -4,15 +4,15 @@ INPUTS = await INPUTS.json();
 let OUTPUTS = await fetch('./dataset/labels.json');
 OUTPUTS = await OUTPUTS.json();
 
-OUTPUTS =  OUTPUTS.slice(0, 3);
-INPUTS = INPUTS.slice(0, 3);
+OUTPUTS =  OUTPUTS.slice(0, 1000);
+INPUTS = INPUTS.slice(0, 1000);
 
 
 const LABELS = [];
 
 OUTPUTS.forEach((a) => {
   if(!LABELS.includes(a)) {
-    LABELS.push(a);
+    LABELS.push(a.productDisplayName);
   }
 });
 
@@ -33,6 +33,8 @@ function imageLoop(inputs, ctx, index = 0, datas = []) {
       const context = ctx.getImageData(0, 0, width, height);
 
       datas.push(context.data);
+
+      console.log(`${datas.length} ==> ${inputs.length}`);
   
       if(index <= inputs.length) {
         datas = await imageLoop(inputs, ctx, index + 1, datas);

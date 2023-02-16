@@ -16,8 +16,8 @@ async function train() {
 
   let results = await model.fit(data.INPUTS_TENSOR, data.OUTPUTS_TENSOR, {
     shuffle: true,
-    batchSize: 10000,
-    epochs: 16,
+    batchSize: 512,
+    epochs: 50,
     callbacks: { onEpochEnd: logProcess }
   });
 
@@ -31,7 +31,7 @@ function logProcess(epoch, logs) {
   console.log('Data for epoch '+ epoch, logs);
 }
 
-function evaluate() {
+async function evaluate() {
   // Random index alıyom
   const OFFSET = Math.floor((Math.random() * data.INPUTS.length));
 
@@ -45,7 +45,7 @@ function evaluate() {
   });
 
   answer.array().then((index) => {
-    PREDICTION_ELEMENT.innerText = data.LABELS[index];
+    PREDICTION_ELEMENT.innerText = JSON.stringify(data.LABELS[index]);
 
     PREDICTION_ELEMENT.setAttribute('class', (index === data.OUTPUTS[OFFSET]) ? 'correct' : 'wrong');
 
@@ -53,7 +53,9 @@ function evaluate() {
     drawImage(data.INPUTS[OFFSET]);
   });
 
-  console.log('train bitti')
+  const saveResult = await model.save('localstorage://my-model-1');
+
+  console.log('train bitti', saveResult)
 }
 
 function drawImage(digit) {
@@ -76,23 +78,17 @@ document.getElementById('fileUpload').addEventListener('change', (event) => {
   const file = event.target.files[0];
   const image = new Image();
   
-  image.width = 28;
-  image.height = 28;
+  image.width = 100;
+  image.height = 100;
   image.crossOrigin = 'Anonymous';
   
   image.onload = async() => {
-    CTX.drawImage(image, 0, 0, 28, 28);
+    CTX.drawImage(image, 0, 0, 100, 100);
 
-    const context = CTX.getImageData(0, 0, 28, 28);
-
-    let imageData = null;
-
-    await imageToGray(context.data).then((res) => {
-      imageData = res;
-    });
+    const context = CTX.getImageData(0, 0, 100, 100);
 
     let answer = tf.tidy(() => {
-      let newInput = data.normalize(tf.tensor1d(imageData), 0, 255);
+      let newInput = data.normalize(tf.tensor1d(context.data), 0, 255);
 
       let output = model.predict(newInput.expandDims());
       output.print();
@@ -101,26 +97,12 @@ document.getElementById('fileUpload').addEventListener('change', (event) => {
     });
 
     answer.array().then((index) => {
-      console.log(index);
-      PREDICTION_ELEMENT.innerText = data.LABELS[index];
+      PREDICTION_ELEMENT.innerText = JSON.stringify(data.LABELS[index]);
   
-      // PREDICTION_ELEMENT.setAttribute('class', (index === data.OUTPUTS[OFFSET]) ? 'correct' : 'wrong');
   
       answer.dispose();
-      // drawImage(data.INPUTS[OFFSET]);
+      drawImage(data.INPUTS[index]);
     });
-
-
-    // canvasa gri image yazdırma
-    let imag = null;
-
-    await grayToImage(context, imageData).then((res) => {
-      imag = res;
-    });
-
-    setTimeout(() => {
-      CTX.putImageData(imag, 0, 0);
-    }, 1000)
 
 
     // const pre = document.getElementById('pre');
