@@ -14,15 +14,15 @@ async function train() {
 
   console.log(data.INPUTS_TENSOR)
 
-  // let results = await model.fit(data.INPUTS_TENSOR, data.OUTPUTS_TENSOR, {
-  //   shuffle: true,
-  //   batchSize: 10000,
-  //   epochs: 16,
-  //   callbacks: { onEpochEnd: logProcess }
-  // });
+  let results = await model.fit(data.INPUTS_TENSOR, data.OUTPUTS_TENSOR, {
+    shuffle: true,
+    batchSize: 10000,
+    epochs: 16,
+    callbacks: { onEpochEnd: logProcess }
+  });
 
-  // data.INPUTS_TENSOR.dispose();
-  // data.OUTPUTS_TENSOR.dispose();
+  data.INPUTS_TENSOR.dispose();
+  data.OUTPUTS_TENSOR.dispose();
 
   evaluate();
 }

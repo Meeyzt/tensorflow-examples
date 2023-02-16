@@ -4,8 +4,8 @@ INPUTS = await INPUTS.json();
 let OUTPUTS = await fetch('./dataset/labels.json');
 OUTPUTS = await OUTPUTS.json();
 
-OUTPUTS =  OUTPUTS.slice(0, 10);
-INPUTS = INPUTS.slice(0, 10);
+OUTPUTS =  OUTPUTS.slice(0, 3);
+INPUTS = INPUTS.slice(0, 3);
 
 
 const LABELS = [];
@@ -19,7 +19,7 @@ OUTPUTS.forEach((a) => {
 const image = new Image();
 image.crossOrigin = 'Anonymous';
 
-INPUTS = await getImageDatas(INPUTS.slice(0, 10));
+INPUTS = await getImageDatas(INPUTS);
 
 console.log(INPUTS)
 
@@ -31,11 +31,12 @@ function imageLoop(inputs, ctx, index = 0, datas = []) {
 
       ctx.drawImage(image, 0, 0, width, height);
       const context = ctx.getImageData(0, 0, width, height);
+
+      datas.push(context.data);
   
       if(index <= inputs.length) {
-        datas.push = context.data;
         datas = await imageLoop(inputs, ctx, index + 1, datas);
-        resolve(datas);
+        resolve(datas)
       }
     };
 
@@ -61,15 +62,7 @@ async function getImageDatas(inputs) {
 
 function imageToGray(context) {
   return new Promise((resolve, reject) => {
-    const imageData = [];
-
-    for (let x = 0; x < context.length; x+= 4) {
-      const avg = (context[x] + context[x + 1] + context[x + 2]) / 3;
-
-      imageData.push(avg);
-    }
-
-    resolve(imageData);
+    resolve(context.data)
   });
 }
 
