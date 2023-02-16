@@ -1,6 +1,6 @@
 const model = tf.sequential();
 
-model.add(tf.layers.dense({ inputShape: [784], units: 32, activation: 'relu' }));
+model.add(tf.layers.dense({ inputShape: [10, 1000], units: 2, activation: 'relu' }));
 
 model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
 
