@@ -207,3 +207,10 @@ module.exports = {
   decoder,
   vaeLoss,
 }
+
+export {
+  vae,
+  encoder,
+  decoder,
+  vaeLoss
+}

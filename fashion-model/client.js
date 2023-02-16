@@ -19,10 +19,6 @@
  * This file holds the browser based viewer for the VAE trained in node.
  */
 
-import * as tf from '@tensorflow/tfjs';
-import * as tfvis from '@tensorflow/tfjs-vis';
-import {select as d3Select} from 'd3-selection';
-
 // Make sure that you are serving the model file at this location.
 // You should be able to paste this url into your browser and see
 // the json file.
@@ -35,6 +31,7 @@ const IMAGE_WIDTH = 28;
 const IMAGE_CHANNELS = 1;
 
 const LATENT_DIMS = 2;
+const canvas = document.getElementById('canvas');
 
 async function loadModel(modelUrl) {
   const decoder = await tf.loadLayersModel(modelUrl);
@@ -48,6 +45,63 @@ async function loadModel(modelUrl) {
   return decoder;
 }
 
+function getImageAlphas(imageData) {
+  return new Promise((resolve, reject) => {
+    const alphas = [];
+
+    for(let i = 0; i < imageData.length; i+= 4) {
+      alphas.push(imageData[i + 3]);
+    }
+
+    resolve(alphas);
+  });
+}
+
+document.getElementById('image-upload').addEventListener('change', (event) => {
+  const file = event.target.files[0];
+  const image = new Image();
+
+  // const vaeOpts = {
+  //   originalDim: 784,
+  //   intermediateDim: 512,
+  //   latentDim: 2
+  // };
+
+  
+  image.width = 28;
+  image.height = 28;
+  image.crossOrigin = 'Anonymous';
+  
+  image.onload = async() => {
+    const oneChannel = tf.browser.fromPixels(image, 1);
+    let imageData = await tf.browser.toPixels(oneChannel, canvas);
+    const buffer = [];
+    const pre = document.getElementById('pre');
+    imageData.forEach((d) => {
+      buffer.push(d / 255);
+      pre.innerHTML += `${d}, `;
+    });
+
+    const bufferDatas = await getImageAlphas(buffer);
+
+    const tensor = tf.tensor2d(bufferDatas, [28, 28]);
+
+    // decoder.classification(tensor);
+
+    // decoder.predict(tensor).mul(255).cast('int32');
+
+    
+    // ctx.drawImage(imageData, 0, 0, 28, 28);
+
+    // console.log('imageLoaded')
+    // ctx.drawImage(image, 0 , 0, 28, 28);
+    // console.log(ctx.getImageData(0, 0, 28, 28));
+    // document.getElementById('pre').append(image);
+  }
+  image.src = URL.createObjectURL(file);
+
+});
+
 /**
  * Generates a representation of a latent space.
  *
@@ -60,15 +114,15 @@ async function loadModel(modelUrl) {
  * @param {number} end end value
  * @returns {Tensor1d[]}
  */
-function generateLatentSpace(dimensions, pointsPerDim, start, end) {
-  const result = [];
-  for (let i = 0; i < dimensions; i++) {
-    const values = tf.linspace(start, end, pointsPerDim);
-    result.push(values);
-  }
+// function generateLatentSpace(dimensions, pointsPerDim, start, end) {
+//   const result = [];
+//   for (let i = 0; i < dimensions; i++) {
+//     const values = tf.linspace(start, end, pointsPerDim);
+//     result.push(values);
+//   }
 
-  return result;
-}
+//   return result;
+// }
 
 /**
  * Decode a (batch of) z vector into an image tensor. Z is the vector in latent
@@ -79,14 +133,14 @@ function generateLatentSpace(dimensions, pointsPerDim, start, end) {
  *
  * @param {Tensor2D} inputTensor of shape [batch, LATENT_DIMS]
  */
-function decodeZ(inputTensor) {
-  return tf.tidy(() => {
-    const res = decoder.predict(inputTensor).mul(255).cast('int32');
-    const reshaped = res.reshape(
-        [inputTensor.shape[0], IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS]);
-    return reshaped;
-  });
-}
+// function decodeZ(inputTensor) {
+//   return tf.tidy(() => {
+//     const res = decoder.predict(inputTensor).mul(255).cast('int32');
+//     const reshaped = res.reshape(
+//         [inputTensor.shape[0], IMAGE_HEIGHT, IMAGE_WIDTH, IMAGE_CHANNELS]);
+//     return reshaped;
+//   });
+// }
 
 /**
  * Render the latent space by z vectors through the VAE and rendering
@@ -94,82 +148,80 @@ function decodeZ(inputTensor) {
  *
  * Handles only 2D latent spaces
  */
-async function renderLatentSpace(latentSpace) {
-  document.getElementById('plot-area').innerText = '';
-  const [xAxis, yAxis] = latentSpace;
+// async function renderLatentSpace(latentSpace) {
+  // document.getElementById('plot-area').innerText = '';
+  // const [xAxis, yAxis] = latentSpace;
 
-  // Create the canvases that we will draw to.
-  const xPlaceholder = Array(xAxis.shape[0]).fill(0);
-  const yPlaceholder = Array(yAxis.shape[0]).fill(0);
+  // // Create the canvases that we will draw to.
+  // const xPlaceholder = Array(xAxis.shape[0]).fill(0);
+  // const yPlaceholder = Array(yAxis.shape[0]).fill(0);
 
-  const rows = d3Select('.plot-area').selectAll('div.row').data(xPlaceholder);
-  const rEnter = rows.enter().append('div').attr('class', 'row');
-  rows.exit().remove();
+  // const rows = document.querySelectorAll('.plot-area div.row').data(xPlaceholder);
+  // const rEnter = rows.enter().append('div').attr('class', 'row');
+  // rows.exit().remove();
 
-  const cols = rEnter.selectAll('div.col').data(yPlaceholder);
-  cols.enter()
-      .append('div')
-      .attr('class', 'col')
-      .append('canvas')
-      .attr('width', 50)
-      .attr('height', 50);
-
+  // const cols = rEnter.selectAll('div.col').data(yPlaceholder);
+  // cols.enter()
+  //     .append('div')
+  //     .attr('class', 'col')
+  //     .append('canvas')
+  //     .attr('width', 50)
+  //     .attr('height', 50);
   // Generate images and render them to each canvas element
-  rows.merge(rEnter).each(async function(rowZ, rowIndex) {
-    // Generate a batch of zVectors for each row.
-    const zX = xAxis.slice(rowIndex, 1).tile(yAxis.shape);
-    const zBatch = zX.stack(yAxis).transpose();
-    const batchImageTensor = decodeZ(zBatch);
-    const imageTensors = batchImageTensor.unstack();
+  // rows.merge(rEnter).each(async function(rowZ, rowIndex) {
+  //   // Generate a batch of zVectors for each row.
+  //   const zX = xAxis.slice(rowIndex, 1).tile(yAxis.shape);
+  //   const zBatch = zX.stack(yAxis).transpose();
+  //   const batchImageTensor = decodeZ(zBatch);
+  //   const imageTensors = batchImageTensor.unstack();
 
-    tf.dispose([zX, zBatch, batchImageTensor]);
+  //   tf.dispose([zX, zBatch, batchImageTensor]);
 
-    const cols = d3Select(this).selectAll('.col');
-    cols.each(async function(colZ, colIndex) {
-      const canvas = d3Select(this).select('canvas').node();
-      const imageTensor = imageTensors[colIndex];
+  //   const cols = d3Select(this).selectAll('.col');
+  //   cols.each(async function(colZ, colIndex) {
+  //     const canvas = d3Select(this).select('canvas').node();
+  //     const imageTensor = imageTensors[colIndex];
 
-      // Render the results to the canvas
-      tf.browser.toPixels(imageTensor, canvas).then(() => {
-        tf.dispose([imageTensor]);
-      });
-    });
-  });
-}
+  //     // Render the results to the canvas
+  //     tf.browser.toPixels(imageTensor, canvas).then(() => {
+  //       tf.dispose([imageTensor]);
+  //     });
+  //   });
+  // });
+// }
 
-function getParams() {
-  const ppd = document.getElementById('pointsPerDim');
-  const start = document.getElementById('start');
-  const end = document.getElementById('end');
+// function getParams() {
+//   const ppd = document.getElementById('pointsPerDim');
+//   const start = document.getElementById('start');
+//   const end = document.getElementById('end');
 
-  return {
-    pointsPerDim: parseInt(ppd.value), start: parseFloat(start.value),
-        end: parseFloat(end.value),
-  }
-}
+//   return {
+//     pointsPerDim: parseInt(ppd.value), start: parseFloat(start.value),
+//         end: parseFloat(end.value),
+//   }
+// }
 
-/**
- * Generate an evenly spaced 2d latent space.
- */
-function draw() {
-  const params = getParams();
-  console.log('params', params);
-  const latentSpace = generateLatentSpace(
-      LATENT_DIMS, params.pointsPerDim, params.start, params.end);
+// /**
+//  * Generate an evenly spaced 2d latent space.
+//  */
+// function draw() {
+//   const params = getParams();
+//   console.log('params', params);
+//   const latentSpace = generateLatentSpace(
+//       LATENT_DIMS, params.pointsPerDim, params.start, params.end);
 
-  renderLatentSpace(latentSpace);
-  tf.dispose(latentSpace);
-}
+//   renderLatentSpace(latentSpace);
+//   tf.dispose(latentSpace);
+// }
 
-function setupListeners() {
-  document.getElementById('update').addEventListener('click', () => {
-    draw();
-  })
-}
+// function setupListeners() {
+//   document.getElementById('update').addEventListener('click', () => {
+//     draw();
+//   })
+// }
 
 // Render images generated byt the VAE.
 (async function run() {
-  setupListeners();
   decoder = await loadModel(decoderUrl);
-  draw();
+  console.log('model loaded', decoder)
 })();
