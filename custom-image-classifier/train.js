@@ -51,9 +51,9 @@ async function evaluate() {
     drawImage(data.INPUTS[OFFSET]);
   });
 
-  const saveResult = await model.save('localstorage://my-model-1');
+  // const saveResult = await model.save('/model');
 
-  console.log('train bitti', saveResult)
+  console.log('train bitti')
 }
 
 function drawImage(digit) {

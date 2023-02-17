@@ -4,8 +4,8 @@ INPUTS = await INPUTS.json();
 let OUTPUTS = await fetch('./dataset/labels.json');
 OUTPUTS = await OUTPUTS.json();
 
-OUTPUTS =  OUTPUTS.slice(0, 1000);
-INPUTS = INPUTS.slice(0, 1000);
+OUTPUTS =  OUTPUTS.slice(0, 3);
+INPUTS = INPUTS.slice(0, 3);
 
 
 const LABELS = [];
@@ -20,8 +20,6 @@ const image = new Image();
 image.crossOrigin = 'Anonymous';
 
 INPUTS = await getImageDatas(INPUTS);
-
-console.log(INPUTS)
 
 function imageLoop(inputs, ctx, index = 0, datas = []) {
   return new Promise((resolve, reject) => {

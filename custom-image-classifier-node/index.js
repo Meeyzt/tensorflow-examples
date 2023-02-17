@@ -25,8 +25,7 @@ function logProcess(epoch, logs) {
 }
 
 async function evaluate() {
-  const testImages = data.testData[0];
-  const testLabels = data.testData[1];
+  const [testImages, testLabels] = dataset.getTestData();
 
   let answer = tf.tidy(() => {
     let output = model.predict(testImages[0]);
