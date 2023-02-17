@@ -12,8 +12,6 @@ async function train() {
     metrics: ['accuracy']
   });
 
-  console.log(data.INPUTS_TENSOR)
-
   let results = await model.fit(data.INPUTS_TENSOR, data.OUTPUTS_TENSOR, {
     shuffle: true,
     batchSize: 512,
@@ -128,31 +126,3 @@ document.getElementById('fileUpload').addEventListener('change', (event) => {
 
   image.src = URL.createObjectURL(file);
 });
-
-
-function imageToGray(context) {
-  return new Promise((resolve, reject) => {
-    const imageData = [];
-
-    for (let x = 0; x < context.length; x+= 4) {
-      const avg = (context[x] + context[x + 1] + context[x + 2]) / 3;
-
-      imageData.push(avg);
-    }
-
-    resolve(imageData);
-  });
-}
-
-function grayToImage(context, imageData) {
-  return new Promise((resolve, reject) => {
-    for (let x = 0; x < imageData.length; x++) {
-      context.data[x * 4] = imageData[x]; // RED
-      context.data[x * 4 + 1] = imageData[x]; // GREEN
-      context.data[x * 4 + 2] = imageData[x]; // BLUE
-      context.data[x * 4 + 3] = 255;
-    }
-
-    resolve(context);
-  });
-}
