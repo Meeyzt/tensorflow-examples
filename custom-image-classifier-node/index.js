@@ -2,16 +2,19 @@ const data = require('./data');
 const model = require('./model');
 
 async function train() {
+  await data.loadData();
+  const [images, labels] = data.trainData;
+
   model.compile({
     optimizer: 'adam',
     loss: 'categoricalCrossentropy',
-    metrics: ['loss', 'accuracy']
+    metrics: ['accuracy']
   });
 
-  let results = await model.fit(data.trainData[0], data.trainData[1], {
+  let results = await model.fit(images, labels, {
     shuffle: true,
-    batchSize: 10000,
-    epochs: 12,
+    batchSize: 500,
+    epochs: 64,
     callbacks: { onEpochEnd: logProcess }
   });
 
@@ -25,7 +28,7 @@ function logProcess(epoch, logs) {
 }
 
 async function evaluate() {
-  const [testImages, testLabels] = dataset.getTestData();
+  const [testImages, testLabels] = data.testData;
 
   let answer = tf.tidy(() => {
     let output = model.predict(testImages[0]);
@@ -35,7 +38,7 @@ async function evaluate() {
   });
 
   answer.array().then((index) => {
-    console.log(testLabels[index], testLabels[0]);
+    console.log('result ==>', testLabels[index], testLabels[index]);
 
     answer.dispose();
   });

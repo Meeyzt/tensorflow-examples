@@ -29,10 +29,12 @@ async function loadImages(dataDir) {
     images.push(imageTensor);
   
     const label = inputLabels.find((label) => label.id === fileName);
-    labels.push(label);
+    if(!labels.includes(label.articleType)) {
+      labels.push(label.articleType);
+    }
   }
-  console.log('Labels are');
-  console.log(labels);
+  console.log(dataDir, 'Labels are');
+  console.log(labels.length);
   return [images, labels];
 }
 
@@ -44,10 +46,10 @@ class Dataset {
   }
 
   /** Loads training and test data. */
-  loadData() {
+  async loadData() {
     console.log('Loading images...');
-    this.trainData = loadImages(TRAIN_IMAGES_DIR);
-    this.testData = loadImages(TEST_IMAGES_DIR);
+    this.trainData = await loadImages(TRAIN_IMAGES_DIR);
+    this.testData = await loadImages(TEST_IMAGES_DIR);
     console.log('Images loaded successfully.')
   }
 
