@@ -1,47 +1,36 @@
 const tf = require('@tensorflow/tfjs-node');
-const fs = require('fs');
+const fs = require('node:fs');
 const path = require('path');
+const inputLabels = require('./dataset/labels.json');
 
-const TRAIN_IMAGES_DIR = './myntradataset/images';
-const TEST_IMAGES_DIR = './test/images';
+const TRAIN_IMAGES_DIR = './dataset/train/images';
+const TEST_IMAGES_DIR = './dataset/test/images';
 
-function loadImages(dataDir) {
+async function loadImages(dataDir) {
   const images = [];
   const labels = [];
   
-  var files = fs.readdirSync(dataDir);
+  var files = await fs.readdirSync(dataDir);
 
-  console.log(files);
-  // for (let i = 0; i < files.length; i++) { 
-  //   if (!files[i].toLocaleLowerCase().endsWith(".png")) {
-  //     continue;
-  //   }
+  for (let i = 0; i < files.length; i++) { 
+    if (!files[i].toLocaleLowerCase().endsWith('.jpg')) {
+      continue;
+    }
 
-  //   var filePath = path.join(dataDir, files[i]);
+    const fileName = Number(files[i].split('.')[0]);
+    const filePath = path.join(dataDir, files[i]);
     
-  //   var buffer = fs.readFileSync(filePath);
-  //   var imageTensor = tf.node.decodeImage(buffer)
-  //     .resizeNearestNeighbor([96,96])
-  //     .toFloat()
-  //     .div(tf.scalar(255.0))
-  //     .expandDims();
-  //   images.push(imageTensor);
-    
-  //   // here we assume every folder has file with name n_flower.png
-  //   var daisy = files[i].toLocaleLowerCase().endsWith("daisy.png");
-  //   var dandelion = files[i].toLocaleLowerCase().endsWith("dandelion.png");
-  //   var rose = files[i].toLocaleLowerCase().endsWith("rose.png");
-  //   var sunflower = files[i].toLocaleLowerCase().endsWith("sunflower.png");
-  //   var tulip = files[i].toLocaleLowerCase().endsWith("tulip.png");
+    const buffer = fs.readFileSync(filePath);
+    const imageTensor = tf.node.decodeImage(buffer)
+      .resizeNearestNeighbor([96,96])
+      .toFloat()
+      .div(tf.scalar(255.0))
+      .expandDims();
+    images.push(imageTensor);
   
-    
-  //   if( daisy == true){ labels.push(1)}
-  //   else if (dandelion == true) {labels.push(2)}
-  //   else if (rose == true) {labels.push(3)}
-  //   else if (sunflower == true) {labels.push(4)}
-  //   else {labels.push(0)}
-
-  // }
+    const label = inputLabels.find((label) => label.id === fileName);
+    labels.push(label);
+  }
   console.log('Labels are');
   console.log(labels);
   return [images, labels];
