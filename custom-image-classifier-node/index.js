@@ -3,7 +3,7 @@ const model = require('./model');
 
 async function train() {
   await data.loadData();
-  const [images, labels] = data.trainData;
+  const { images, labels } = data.getTestData();
 
   model.compile({
     optimizer: 'adam',
@@ -28,7 +28,7 @@ function logProcess(epoch, logs) {
 }
 
 async function evaluate() {
-  const [testImages, testLabels] = data.testData;
+  const { testImages, testLabels } = data.getTestData();
 
   let answer = tf.tidy(() => {
     let output = model.predict(testImages[0]);

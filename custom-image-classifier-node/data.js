@@ -2,6 +2,7 @@ const tf = require('@tensorflow/tfjs-node');
 const fs = require('node:fs');
 const path = require('path');
 const inputLabels = require('./dataset/labels.json');
+const notExistingLabels = [];
 
 const TRAIN_IMAGES_DIR = './dataset/train/images';
 const TEST_IMAGES_DIR = './dataset/test/images';
@@ -17,6 +18,8 @@ async function loadImages(dataDir) {
       continue;
     }
 
+    console.log(i, ' to ', files.length - 1);
+
     const fileName = Number(files[i].split('.')[0]);
     const filePath = path.join(dataDir, files[i]);
     
@@ -29,12 +32,13 @@ async function loadImages(dataDir) {
     images.push(imageTensor);
   
     const label = inputLabels.find((label) => label.id === fileName);
-    if(!labels.includes(label.articleType)) {
-      labels.push(label.articleType);
+    labels.push(label.articleType);
+    if(!notExistingLabels.includes(label.articleType)) {
+      notExistingLabels.push(label.articleType);
     }
   }
-  console.log(dataDir, 'Labels are');
-  console.log(labels.length);
+  console.log(dataDir, 'Labels are => ', labels.length);
+  console.log('notExistingLabels => ', notExistingLabels.length);
   return [images, labels];
 }
 
@@ -48,8 +52,9 @@ class Dataset {
   /** Loads training and test data. */
   async loadData() {
     console.log('Loading images...');
-    this.trainData = await loadImages(TRAIN_IMAGES_DIR);
+    // this.trainData = await loadImages(TRAIN_IMAGES_DIR);
     this.testData = await loadImages(TEST_IMAGES_DIR);
+    this.notExistingLabels = notExistingLabels;
     console.log('Images loaded successfully.')
   }
 
@@ -57,15 +62,15 @@ class Dataset {
     return {
       
       images: tf.concat(this.trainData[0]),
-      labels: tf.oneHot(tf.tensor1d(this.trainData[1], 'int32'), 5).toFloat() // here 5 is class
+      labels: tf.oneHot(tf.tensor1d(this.trainData[1], 'int32'), 10).toFloat() // here 5 is class
       
     }
   }
 
   getTestData() {
     return {
-      images: tf.concat(this.testData[0]),
-      labels: tf.oneHot(tf.tensor1d(this.testData[1], 'int32'), 5).toFloat()
+      images: this.testData[0],
+      labels: tf.oneHot(tf.tensor1d(this.testData[1], 'int32'), 10).toFloat()
     }
   }
 }
