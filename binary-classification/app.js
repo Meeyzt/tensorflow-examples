@@ -25,7 +25,7 @@ async function plot(trainValues, featureName, predictedValuesArray = null) {
   )
 }
 
-async function plotClasses(trainValues, classKey) {
+async function plotClasses(trainValues, classKey, equalizeClassSizes) {
   const classes = {};
 
   trainValues.forEach((val) => {
@@ -35,6 +35,24 @@ async function plotClasses(trainValues, classKey) {
 
     classes[`${classKey}: ${val.class}`].push({ ...val });
   });
+
+  if(equalizeClassSizes) {
+    // Find smallest Class
+    let maxLength = null;
+
+    Object.values(classes).forEach((clas) => {
+      if(maxLength === null || clas.length < maxLength && clas.length >= 100) {
+        maxLength = clas.length;
+      }
+    });
+
+    // Limit each class to number of elements of smallest class
+    Object.keys(classes).forEach(keyName => {
+      if(classes[keyName].length < 100) {
+        delete classes[keyName];
+      }
+    });
+  }
 
   tfvis.render.scatterplot(
     { name: 'Square Feet vs House Price' },
@@ -47,8 +65,6 @@ async function plotClasses(trainValues, classKey) {
       yLabel: 'House Price'
     }
   )
-
-  console.log(classes);
 }
 
 async function plotPredictionLine() {
@@ -71,13 +87,43 @@ async function plotPredictionLine() {
 }
 
 function normalize(tensor, min, max) {
-  return tf.tidy(() => {
-    const normalizedTensor = tensor.sub(min).div(max.sub(min));
+  const featureDims = tensor.shape.length > 1 && tensor.shape[1];
 
-    return {
-      tensor: normalizedTensor
-    }
-  });
+  if(featureDims && featureDims > 1) {
+    // Birden fazla ozellik icin
+
+    // tensorlari bol
+    const features = tf.split(tensor, featureDims, 1);
+
+    // normalize et ve buyuk kucuk degerlerini bul
+    const normalisedTensors = features.map((featureTensor, i)=> {
+      normalize(featureTensor,
+        min ? min[i]: null,
+        max ? max[i]: null
+      );
+
+      // return degeri
+      const returnTensor = tf.concat(normalisedTensors.map(f => f.tensor), 1);
+      const featureMin = normalisedTensors.map(f => f.min);
+      const featureMax = normalisedTensors.map(f => f.max);
+
+      return { tensor: returnTensor, min: featureMin, max: featureMax };
+    })
+  } else {
+    // Sadece bir ozelllik icin
+    return tf.tidy(() => {
+      const min = inputTensor.min();
+      const max = inputTensor.min();
+
+      const normalizedTensor = tensor.sub(min).div(max.sub(min));
+
+      return {
+        tensor: normalizedTensor,
+        min,
+        max
+      }
+    });
+  }
 }
 
 function createModel() {
@@ -107,8 +153,24 @@ function createModel() {
 }
 
 function denormalize(tensor, min, max) {
-  const denormalizedTensor = tensor.mul(max.sub(min)).add(min)
-  return denormalizedTensor;
+  const featureDims = tensor.shape.length > 1 && tensor.shape[1];
+
+  if(featureDims && featureDims > 1) {
+    // Birden fazla ozellik icin
+
+    // tensorlari bol
+    const features = tf.split(tensor, featureDims, 1);
+
+    const denormalized = features.map((featureTensor, i) => denormalize(tensor, min[i], max[i]));
+
+    const returnTensor = tf.concat(denormalized, 1);
+
+    return returnTensor;
+  } else {
+    // bir tensor icin
+    const denormalizedTensor = tensor.mul(max.sub(min)).add(min)
+    return denormalizedTensor;
+  }
 }
 
 function train(model, inputs, outputs) {
@@ -146,24 +208,24 @@ async function run() {
   houseDatas = houses.map((item) => ({
     x: item.sqft_living,
     y: item.price,
-    class: item.bedrooms
+    class: item.bedrooms > 2 ? '3+': item.bedrooms
   }));
 
-  plotClasses(await houseDatas, 'Bedroom');
+  plotClasses(await houseDatas, 'Bedroom', true);
 
-  const inputValues = await houseDatas.map(h => h.x);
-  const inputTensor = tf.tensor2d(inputValues, [inputValues.length, 1]);
+  const inputValues = await houseDatas.map(h => [h.x, h.y]);
+  const inputTensor = tf.tensor2d(inputValues);
 
-  const outputValues = await houseDatas.map(h => h.y);
+  const outputValues = await houseDatas.map(h => h.class);
   const outputTensor = tf.tensor2d(outputValues, [outputValues.length, 1]);
 
-  inputMin = inputTensor.min();
-  inputMax = inputTensor.max();
-  outputMin = outputTensor.min();
-  outputMax = outputTensor.max();
+  const normalizedInput = normalize(inputTensor);
+  const normalizedOutput = normalize(outputTensor);
 
-  const normalizedInput = normalize(inputTensor, inputMin, inputMax);
-  const normalizedOutput = normalize(outputTensor, outputMin, outputMax);
+  inputMin = normalizedInput.min;
+  inputMax = normalizedInput.max;
+  outputMin = normalizedOutput.min;
+  outputMax = normalizedOutput.max;
 
   const [normalizedTrainInput, normalizedTestInput] = tf.split(normalizedInput.tensor, 2);
   const [normalizedTrainOutput, normalizedTestOutput] = tf.split(normalizedOutput.tensor, 2);
