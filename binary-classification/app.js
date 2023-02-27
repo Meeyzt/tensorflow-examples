@@ -70,9 +70,9 @@ async function plotClasses(trainValues, classKey, equalizeClassSizes) {
 async function plotPredictionLine() {
   const [xs, ys] = tf.tidy(() => {
     const normalizedXs = tf.linspace(0, 1, 100);
-    const normalizedYs = model.predict(normalizedXs.reshape([100, 1]));
+    const normalizedYs = model.predict(normalizedXs.reshape([50, 2]));
 
-    const xs = denormalize(normalizedXs, inputMin, inputMax);
+    const xs = denormalize(normalizedXs, inputMin, inputMax); 
     const ys = denormalize(normalizedYs, outputMin, outputMax);
 
     return [xs.dataSync(), ys.dataSync()];
@@ -86,7 +86,7 @@ async function plotPredictionLine() {
   await plot(houseDatas, "Square feet", predictedPoints);
 }
 
-function normalize(tensor, min, max) {
+function normalize(tensor, min = null, max = null) {
   const featureDims = tensor.shape.length > 1 && tensor.shape[1];
 
   if(featureDims && featureDims > 1) {
@@ -96,31 +96,30 @@ function normalize(tensor, min, max) {
     const features = tf.split(tensor, featureDims, 1);
 
     // normalize et ve buyuk kucuk degerlerini bul
-    const normalisedTensors = features.map((featureTensor, i)=> {
+    const normalizedTensors = features.map((featureTensor, i) =>
       normalize(featureTensor,
         min ? min[i]: null,
         max ? max[i]: null
-      );
+      ));
 
-      // return degeri
-      const returnTensor = tf.concat(normalisedTensors.map(f => f.tensor), 1);
-      const featureMin = normalisedTensors.map(f => f.min);
-      const featureMax = normalisedTensors.map(f => f.max);
+    // return degeri
+    const returnTensor = tf.concat(normalizedTensors.map(f => f.tensor), 1);
+    const featureMin = normalizedTensors.map(f => f.min);
+    const featureMax = normalizedTensors.map(f => f.max);
 
-      return { tensor: returnTensor, min: featureMin, max: featureMax };
-    })
+    return { tensor: returnTensor, min: featureMin, max: featureMax };
   } else {
     // Sadece bir ozelllik icin
     return tf.tidy(() => {
-      const min = inputTensor.min();
-      const max = inputTensor.min();
+      const tensorMin = tensor.min();
+      const tensorMax = tensor.min();
 
-      const normalizedTensor = tensor.sub(min).div(max.sub(min));
+      const normalizedTensor = tensor.sub(tensorMin).div(tensorMax.sub(tensorMin));
 
       return {
         tensor: normalizedTensor,
-        min,
-        max
+        min: tensorMin,
+        max: tensorMax
       }
     });
   }
@@ -134,7 +133,7 @@ function createModel() {
     units: 10,
     useBias: true,
     activation: 'sigmoid',
-    inputDim: 1,
+    inputDim: 2,
   }));
 
   model.add(tf.layers.dense({
@@ -161,7 +160,7 @@ function denormalize(tensor, min, max) {
     // tensorlari bol
     const features = tf.split(tensor, featureDims, 1);
 
-    const denormalized = features.map((featureTensor, i) => denormalize(tensor, min[i], max[i]));
+    const denormalized = features.map((featureTensor, i) => denormalize(featureTensor, min[i], max[i]));
 
     const returnTensor = tf.concat(denormalized, 1);
 
@@ -208,7 +207,7 @@ async function run() {
   houseDatas = houses.map((item) => ({
     x: item.sqft_living,
     y: item.price,
-    class: item.bedrooms > 2 ? '3+': item.bedrooms
+    class: item.bedrooms > 2 ? 3: item.bedrooms
   }));
 
   plotClasses(await houseDatas, 'Bedroom', true);
@@ -221,6 +220,8 @@ async function run() {
 
   const normalizedInput = normalize(inputTensor);
   const normalizedOutput = normalize(outputTensor);
+
+  console.log(normalizedInput)
 
   inputMin = normalizedInput.min;
   inputMax = normalizedInput.max;
@@ -235,9 +236,9 @@ async function run() {
   document.getElementById('train').addEventListener('click', async() => {
     model = createModel();
   
-    const optimizer = tf.train.sgd(0.1); // learning rate
+    const optimizer = tf.train.adam(); // learning rate
     model.compile({
-      loss: 'meanSquaredError',
+      loss: 'binaryCrossentropy',
       optimizer: optimizer,
     });
   
