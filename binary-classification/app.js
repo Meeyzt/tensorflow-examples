@@ -67,23 +67,42 @@ async function plotClasses(trainValues, classKey, equalizeClassSizes) {
   )
 }
 
-async function plotPredictionLine() {
-  const [xs, ys] = tf.tidy(() => {
-    const normalizedXs = tf.linspace(0, 1, 100);
-    const normalizedYs = model.predict(normalizedXs.reshape([50, 2]));
+async function plotPredictionHeatMap(name = 'Predicted Class', size = 400) {
+  const valuesPromise = tf.tidy(() => {
+    const gridSize = 50;
+    const predictionColumns = [];
 
-    const xs = denormalize(normalizedXs, inputMin, inputMax); 
-    const ys = denormalize(normalizedYs, outputMin, outputMax);
+    for(let colIndex = 0; colIndex < gridSize; colIndex++) {
+      // soldan sağa columlar
+      const colInputs = [];
+      const x = colIndex / gridSize;
 
-    return [xs.dataSync(), ys.dataSync()];
+      for(let rowIndex = 0; rowIndex < gridSize; rowIndex++) {
+        // yukarıdan aşağıda satırlar
+        const y = (gridSize - rowIndex) / gridSize;
+        colInputs.push([x, y]);
+      }
+
+      const colPredictions = model.predict(tf.tensor2d(colInputs));
+      predictionColumns.push(colPredictions);
+    }
+    const valuesTensor = tf.stack(predictionColumns);
+
+    return valuesTensor.array();
   });
 
-  const predictedPoints = Array.from(xs).map((val, index) => ({
-    x: val,
-    y: ys[index]
-  }));
+  const values = await valuesPromise;
 
-  await plot(houseDatas, "Square feet", predictedPoints);
+  const data = {
+    values
+  };
+
+  tfvis.render.heatmap({
+    name,
+    tab: 'Predictions',
+  }, data, {
+    height: size
+  })
 }
 
 function normalize(tensor, min = null, max = null) {
@@ -112,7 +131,7 @@ function normalize(tensor, min = null, max = null) {
     // Sadece bir ozelllik icin
     return tf.tidy(() => {
       const tensorMin = tensor.min();
-      const tensorMax = tensor.min();
+      const tensorMax = tensor.max();
 
       const normalizedTensor = tensor.sub(tensorMin).div(tensorMax.sub(tensorMin));
 
@@ -153,6 +172,7 @@ function createModel() {
 
 function denormalize(tensor, min, max) {
   const featureDims = tensor.shape.length > 1 && tensor.shape[1];
+  console.log(tensor.shape)
 
   if(featureDims && featureDims > 1) {
     // Birden fazla ozellik icin
@@ -166,6 +186,7 @@ function denormalize(tensor, min, max) {
 
     return returnTensor;
   } else {
+    console.log(max, min)
     // bir tensor icin
     const denormalizedTensor = tensor.mul(max.sub(min)).add(min)
     return denormalizedTensor;
@@ -185,7 +206,7 @@ function train(model, inputs, outputs) {
     callbacks: {
       onEpochEnd,
       onEpochBegin: async() => {
-        await plotPredictionLine();
+        await plotPredictionHeatMap();
         const layer = model.getLayer(undefined, 0); // ilk layeri almak için
         tfvis.show.layer({ name: "Layer 1" }, layer);
       }
@@ -221,8 +242,6 @@ async function run() {
   const normalizedInput = normalize(inputTensor);
   const normalizedOutput = normalize(outputTensor);
 
-  console.log(normalizedInput)
-
   inputMin = normalizedInput.min;
   inputMax = normalizedInput.max;
   outputMin = normalizedOutput.min;
@@ -236,7 +255,7 @@ async function run() {
   document.getElementById('train').addEventListener('click', async() => {
     model = createModel();
   
-    const optimizer = tf.train.adam(); // learning rate
+    const optimizer = tf.train.adam(0.1); // learning rate
     model.compile({
       loss: 'binaryCrossentropy',
       optimizer: optimizer,
@@ -246,7 +265,7 @@ async function run() {
     const layer = model.getLayer(undefined, 0); // ilk layeri almak için
     tfvis.show.layer({ name: "Layer 1" }, layer);
 
-    await plotPredictionLine();
+    await plotPredictionHeatMap();
 
     const trainResult = await train(model, normalizedTrainInput, normalizedTrainOutput);
     console.log(trainResult);
@@ -280,7 +299,7 @@ async function run() {
       const layer = model.getLayer(undefined, 0); // ilk layeri almak için
       tfvis.show.layer({ name: "Layer 1" }, layer);
 
-      await plotPredictionLine();
+      await plotPredictionHeatMap();
 
       console.log('model Loaded');
     }
