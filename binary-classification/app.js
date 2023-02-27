@@ -25,50 +25,57 @@ async function plot(trainValues, featureName, predictedValuesArray = null) {
   )
 }
 
-async function plotClasses(trainValues, classKey, equalizeClassSizes) {
-  const classes = {};
-
-  trainValues.forEach((val) => {
-    if(!classes[`${classKey}: ${val.class}`]) {
-      classes[`${classKey}: ${val.class}`] = [];
+async function plotClasses (pointsArray, classKey, size = 400, equalizeClassSizes = false) {
+  // Add each class as a series
+  const allSeries = {};
+  pointsArray.forEach(p => {
+    // Add each point to the series for the class it is in
+    const seriesName = `${classKey}: ${p.class}`;
+    let series = allSeries[seriesName];
+    if (!series) {
+      series = [];
+      allSeries[seriesName] = series;
     }
-
-    classes[`${classKey}: ${val.class}`].push({ ...val });
+    series.push(p);
   });
-
-  if(equalizeClassSizes) {
-    // Find smallest Class
+ 
+  if (equalizeClassSizes) {
+    // Find smallest class
     let maxLength = null;
-
-    Object.values(classes).forEach((clas) => {
-      if(maxLength === null || clas.length < maxLength && clas.length >= 100) {
-        maxLength = clas.length;
+    Object.values(allSeries).forEach(series => {
+      if (maxLength === null || series.length < maxLength && series.length >= 100) {
+        maxLength = series.length;
       }
     });
-
     // Limit each class to number of elements of smallest class
-    Object.keys(classes).forEach(keyName => {
-      if(classes[keyName].length < 100) {
-        delete classes[keyName];
+    Object.keys(allSeries).forEach(keyName => {
+      allSeries[keyName] = allSeries[keyName].slice(0, maxLength);
+      if (allSeries[keyName].length < 100) {
+        delete allSeries[keyName];
       }
     });
   }
-
+ 
   tfvis.render.scatterplot(
-    { name: 'Square Feet vs House Price' },
     {
-      values: Object.values(classes),
-      series: Object.keys(classes)
+      name: `Square feet vs House Price`,
+      styles: { width: "100%" }
     },
-    { 
-      xLabel: 'Square Feet',
-      yLabel: 'House Price'
+    {
+      values: Object.values(allSeries),
+      series: Object.keys(allSeries),
+    },
+    {
+      xLabel: "Square feet",
+      yLabel: "Price",
+      height: size,
+      width: size*1.5,
     }
-  )
+  );
 }
 
 async function plotPredictionHeatMap(name = 'Predicted Class', size = 400) {
-  const valuesPromise = tf.tidy(() => {
+  const valuesPromise = tf.tidy(async() => {
     const gridSize = 50;
     const predictionColumns = [];
 
@@ -88,7 +95,7 @@ async function plotPredictionHeatMap(name = 'Predicted Class', size = 400) {
     }
     const valuesTensor = tf.stack(predictionColumns);
 
-    return valuesTensor.array();
+    return await valuesTensor.array();
   });
 
   const values = await valuesPromise;
@@ -228,7 +235,7 @@ async function run() {
   houseDatas = houses.map((item) => ({
     x: item.sqft_living,
     y: item.price,
-    class: item.bedrooms > 2 ? 3: item.bedrooms
+    class: item.waterfront
   }));
 
   plotClasses(await houseDatas, 'Bedroom', true);
@@ -255,7 +262,7 @@ async function run() {
   document.getElementById('train').addEventListener('click', async() => {
     model = createModel();
   
-    const optimizer = tf.train.adam(0.1); // learning rate
+    const optimizer = tf.train.adam(); // learning rate
     model.compile({
       loss: 'binaryCrossentropy',
       optimizer: optimizer,
@@ -306,22 +313,23 @@ async function run() {
   });
 
   document.getElementById('pred-button').addEventListener('click', async() => {
-    const predInput = Number(document.getElementById('pred-input').value);
+    const priceInput = Number(document.getElementById('price-input').value);
+    const sqftInput = Number(document.getElementById('sqft-input').value);
 
-    if(!predInput) {
+    if(!priceInput || !sqftInput) {
       alert('Input bos')
       return;
     }
 
     tf.tidy(() => {
-      const predictTensor = tf.tensor1d([predInput]);
+      const predictTensor = tf.tensor2d([[priceInput, sqftInput]]);
       const normalizedPredictTensor = normalize(predictTensor, inputMin, inputMax);
       const normalizedPredictOutputTensor = model.predict(normalizedPredictTensor.tensor);
       const predictOutputTensor = denormalize(normalizedPredictOutputTensor, outputMin, outputMax);
       const predictedValue = predictOutputTensor.dataSync()[0];
-      const roundedPredictValue = (predictedValue / 1000).toFixed(0) * 1000;
+      const roundedPredictValue = (predictedValue*100).toFixed(1);
 
-      document.getElementById('prediction').innerText = `$${roundedPredictValue}`;
+      document.getElementById('prediction').innerText = `${roundedPredictValue}`;
     })
   });
 }
