@@ -1,4 +1,4 @@
-const localStoragePath = 'localstorage://ev-fiyatlari-tahmin';
+const localStoragePath = 'localstorage://ev-fiyatlari-binary';
 let model = null;
 let inputMin = null;
 let inputMax = null;
