@@ -75,7 +75,7 @@ async function plotClasses (pointsArray, classKey, size = 400, equalizeClassSize
 }
 
 async function plotPredictionHeatMap(name = 'Predicted Class', size = 400) {
-  const valuesPromise = tf.tidy(async() => {
+  const [valuesPromise, xTicksPromise, yTicksPromise] = tf.tidy(async() => {
     const gridSize = 50;
     const predictionColumns = [];
 
@@ -94,14 +94,23 @@ async function plotPredictionHeatMap(name = 'Predicted Class', size = 400) {
       predictionColumns.push(colPredictions);
     }
     const valuesTensor = tf.stack(predictionColumns);
+    const normalizedTicksTensor = tf.linspace(0, 1, gridSize);
+    const yTicksTensor = denormalize(normalizedTicksTensor, inputMin[0], inputMax[0]);
+    const xTicksTensor = denormalize(normalizedTicksTensor.reverse(), inputMin[1], inputMax[1]);
 
-    return await valuesTensor.array();
+    return [valuesTensor.array(), xTicksTensor.array(), yTicksTensor.array()];
   });
 
   const values = await valuesPromise;
+  const xTicks = await xTicksPromise;
+  const yTicks = await yTicksPromise;
+  const xTickLabels = xTicks.map(() => (v / 1000).toFixed(1) + 'k sqft');
+  const yTickLabels = yTicks.map(() => '$' + (v / 1000).toFixed(1)+ 'k');
 
   const data = {
-    values
+    values,
+    xTickLabels,
+    yTickLabels
   };
 
   tfvis.render.heatmap({
