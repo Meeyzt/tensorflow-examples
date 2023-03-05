@@ -292,6 +292,9 @@ async function run() {
   const [normalizedTrainInput, normalizedTestInput] = tf.split(normalizedInput.tensor, 2);
   const [normalizedTrainOutput, normalizedTestOutput] = tf.split(normalizedOutput.tensor, 2);
 
+  normalizedTrainOutput.print();
+  console.log(normalizedTrainOutput.shape)
+
   console.log('ready');
 
   document.getElementById('train').addEventListener('click', async() => {

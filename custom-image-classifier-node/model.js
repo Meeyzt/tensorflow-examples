@@ -1,11 +1,27 @@
 const tf = require('@tensorflow/tfjs-node');
 
-const model = tf.sequential();
+function createModel(NUM_CLASSES) {
+  const model = tf.sequential();
 
-model.add(tf.layers.dense({ inputShape: [1, 96, 96, 3], units: 3, activation: 'relu' }));
+  model.add(tf.layers.conv2d({ inputShape: [80, 60, 3], filters: 16, kernelSize: 60, activation: 'relu' }));
 
-model.add(tf.layers.dense({ units: 16, activation: 'relu' }));
+  model.add(tf.layers.maxPooling2d({ poolSize: 20 }));
 
-model.add(tf.layers.dense({ units: 5, activation: 'softmax' }));
+  model.add(tf.layers.conv2d({ filters: 32, kernelSize: 60, activation: 'relu' }));
 
-module.exports = model;
+  model.add(tf.layers.maxPooling2d({ poolSize: 20 }));
+
+  model.add(tf.layers.conv2d({ filters: 64, kernelSize: 60, activation: 'relu' }));
+
+  model.add(tf.layers.maxPooling2d({ poolSize: 20 }));
+
+  model.add(tf.layers.flatten());
+
+  model.add(tf.layers.dense({ units: 128, activation: 'relu' }));
+
+  model.add(tf.layers.dense({ units: NUM_CLASSES, activation: 'softmax' }));
+
+  return model;
+}
+
+module.exports = createModel;
